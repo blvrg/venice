@@ -326,7 +326,7 @@
         </style>
     </head>
     <body>
-        <div id="setup-overlay">
+        <div id="setup-overlay" style="display: flex;">
             <form id="setup-form">
                 <h2>Setup Venice AI Chat</h2>
                 <input
@@ -344,14 +344,14 @@
             </form>
         </div>
 
-        <div id="chat-container" style="display: none">
-            <div id="character-preview" style="display: none">
+        <div id="chat-container" style="display: none;">
+            <div id="character-preview" style="display: none;">
                 <img id="preview-img" src="" alt="Character Photo" />
                 <p id="preview-name"></p>
             </div>
         </div>
 
-        <div id="input-container" style="display: none">
+        <div id="input-container" style="display: none;">
             <input
                 type="text"
                 id="user-input"
@@ -368,14 +368,10 @@
 
         <script>
             let apiKey = localStorage.getItem("veniceApiKey") || "";
-            let characterSlug =
-                localStorage.getItem("veniceCharacterSlug") || "";
-            let characterName =
-                localStorage.getItem("veniceCharacterName") || "";
-            let characterPhotoUrl =
-                localStorage.getItem("veniceCharacterPhotoUrl") || "";
-            let characterPhotoBase64 =
-                localStorage.getItem("veniceCharacterPhotoBase64") || "";
+            let characterSlug = localStorage.getItem("veniceCharacterSlug") || "";
+            let characterName = localStorage.getItem("veniceCharacterName") || "";
+            let characterPhotoUrl = localStorage.getItem("veniceCharacterPhotoUrl") || "";
+            let characterPhotoBase64 = localStorage.getItem("veniceCharacterPhotoBase64") || "";
 
             let conversationHistory = [];
             let isImageMode = false;
@@ -384,31 +380,38 @@
 
             // Check if setup is complete
             async function initApp() {
+                console.log('Initializing app... API Key:', apiKey ? 'Present' : 'Missing');
                 if (apiKey && apiKey !== "YOUR_API_KEY_HERE") {
-                    await loadCharacter();
-                    showChat();
+                    console.log('Valid API key found, loading character...');
+                    try {
+                        await loadCharacter();
+                        showChat();
+                    } catch (error) {
+                        console.error('Character load failed:', error);
+                        showChat(); // Proceed without character
+                    }
                 } else {
+                    console.log('No valid API key, showing setup...');
                     showSetup();
                 }
             }
 
             function showSetup() {
-                document.getElementById("setup-overlay").style.display = "flex";
-                document
-                    .getElementById("setup-form")
-                    .addEventListener("submit", handleSetup);
+                const overlay = document.getElementById("setup-overlay");
+                overlay.style.display = "flex";
+                const form = document.getElementById("setup-form");
+                // Remove existing listeners to avoid duplicates
+                form.removeEventListener("submit", handleSetup);
+                form.addEventListener("submit", handleSetup);
                 document.getElementById("api-key-input").value = apiKey;
                 document.getElementById("slug-input").value = characterSlug;
+                console.log('Setup form shown.');
             }
 
             async function handleSetup(e) {
                 e.preventDefault();
-                const newApiKey = document
-                    .getElementById("api-key-input")
-                    .value.trim();
-                const newSlug = document
-                    .getElementById("slug-input")
-                    .value.trim();
+                const newApiKey = document.getElementById("api-key-input").value.trim();
+                const newSlug = document.getElementById("slug-input").value.trim();
 
                 if (!newApiKey) {
                     alert("API Key is required!");
@@ -426,13 +429,14 @@
                 submitBtn.disabled = true;
                 submitBtn.textContent = "Loading...";
 
+                console.log('Setup submitted, loading character...');
+
                 try {
                     await loadCharacter();
                     showChat();
                 } catch (error) {
-                    alert(
-                        `Error loading character: ${error.message}. Continuing without character.`,
-                    );
+                    console.error('Character load error in setup:', error);
+                    alert(`Error loading character: ${error.message}. Continuing without character.`);
                     characterName = "";
                     characterPhotoUrl = "";
                     characterPhotoBase64 = "";
@@ -448,11 +452,14 @@
 
             async function loadCharacter() {
                 if (!characterSlug) {
+                    console.log('No slug, skipping character load.');
                     characterName = "";
                     characterPhotoUrl = "";
                     characterPhotoBase64 = "";
                     return;
                 }
+
+                console.log('Fetching character data for slug:', characterSlug);
 
                 const response = await fetch(
                     `https://api.venice.ai/api/v1/characters/${characterSlug}`,
@@ -465,22 +472,24 @@
                 );
 
                 if (!response.ok) {
-                    throw new Error(
-                        `Failed to fetch character: ${response.statusText}`,
-                    );
+                    throw new Error(`Failed to fetch character: ${response.statusText}`);
                 }
 
                 const data = await response.json();
                 characterName = data.data?.name || data.name || characterSlug;
                 characterPhotoUrl = data.data?.photoUrl || data.photoUrl || "";
 
+                console.log('Character loaded:', { name: characterName, photoUrl: characterPhotoUrl });
+
                 // Fetch and convert photo to base64 to bypass CORS for <img>
                 if (characterPhotoUrl) {
                     try {
+                        console.log('Fetching photo as blob...');
                         const imgResponse = await fetch(characterPhotoUrl);
-                        if (!imgResponse.ok) throw new Error('Image fetch failed');
+                        if (!imgResponse.ok) throw new Error(`Image fetch failed: ${imgResponse.statusText}`);
                         const imgBlob = await imgResponse.blob();
                         characterPhotoBase64 = await blobToBase64(imgBlob);
+                        console.log('Photo converted to base64 successfully.');
                     } catch (error) {
                         console.error('Failed to fetch character photo:', error);
                         characterPhotoBase64 = '';
@@ -489,32 +498,27 @@
 
                 // Save to localStorage
                 localStorage.setItem("veniceCharacterName", characterName);
-                localStorage.setItem(
-                    "veniceCharacterPhotoUrl",
-                    characterPhotoUrl,
-                );
-                localStorage.setItem(
-                    "veniceCharacterPhotoBase64",
-                    characterPhotoBase64,
-                );
+                localStorage.setItem("veniceCharacterPhotoUrl", characterPhotoUrl);
+                localStorage.setItem("veniceCharacterPhotoBase64", characterPhotoBase64);
             }
 
             function showChat() {
+                console.log('Showing chat interface.');
                 document.getElementById("setup-overlay").style.display = "none";
-                document.getElementById("chat-container").style.display =
-                    "flex";
-                document.getElementById("input-container").style.display =
-                    "flex";
+                document.getElementById("chat-container").style.display = "flex";
+                document.getElementById("input-container").style.display = "flex";
 
                 // Show character preview if details provided
                 if (characterName && characterPhotoBase64) {
-                    const previewDiv =
-                        document.getElementById("character-preview");
+                    console.log('Setting up character preview with base64.');
+                    const previewDiv = document.getElementById("character-preview");
                     const previewImg = document.getElementById("preview-img");
                     const previewName = document.getElementById("preview-name");
                     previewImg.src = `data:image/jpeg;base64,${characterPhotoBase64}`;
                     previewName.textContent = characterName;
                     previewDiv.style.display = "block";
+                } else {
+                    console.log('No character details, hiding preview.');
                 }
             }
 
