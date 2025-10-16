@@ -698,19 +698,82 @@
                         // Display the image (base64 embeds directly—no CORS)
                         addImageMessage(base64Image);
 
-                        // Generate description and add to history for context
+                        // Generate description
                         const description = await describeImage(base64Image);
-                        const contextMessage = `Here is ${description}`;
-                        addMessage("ai", contextMessage); // Also display in chat for user
 
-                        // Update history
+                        // Now generate character response about the image
+                        const veniceParams = {
+                            enable_web_search: "auto",
+                            include_venice_system_prompt: true,
+                        };
+                        if (
+                            characterSlug &&
+                            characterSlug !== "YOUR_CHARACTER_SLUG_HERE"
+                        ) {
+                            veniceParams.character_slug = characterSlug;
+                        }
+
+                        let messages = [...conversationHistory];
+                        if (
+                            !characterSlug ||
+                            characterSlug === "YOUR_CHARACTER_SLUG_HERE"
+                        ) {
+                            messages = [
+                                {
+                                    role: "system",
+                                    content: `You are a helpful assistant. The user asked you to generate an image with the prompt: "${message}". You have generated an image that depicts: ${description}. Respond engagingly to the user about this image, as if presenting it to them.`,
+                                },
+                                ...messages,
+                            ];
+                        }
+                        const augmentedUserContent = `${message} (The generated image depicts: ${description})`;
+                        messages.push({ role: "user", content: augmentedUserContent });
+
+                        const requestBody = {
+                            model: "venice-uncensored",
+                            messages: messages,
+                            venice_parameters: veniceParams,
+                            frequency_penalty: 0,
+                            presence_penalty: 0,
+                            max_tokens: 1000,
+                            max_completion_tokens: 998,
+                            temperature: 1,
+                            top_p: 0.1,
+                            stream: false,
+                        };
+
+                        const response = await fetch(
+                            "https://api.venice.ai/api/v1/chat/completions",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${apiKey}`,
+                                },
+                                body: JSON.stringify(requestBody),
+                            },
+                        );
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(
+                                errorData.error || "Chat API request failed",
+                            );
+                        }
+
+                        const data = await response.json();
+                        const aiReply = data.choices[0].message.content;
+
+                        addMessage("ai", aiReply);
+
+                        // Update history with original user message
                         conversationHistory.push({
                             role: "user",
                             content: message,
                         });
                         conversationHistory.push({
                             role: "assistant",
-                            content: contextMessage,
+                            content: aiReply,
                         });
 
                         // Trim history
