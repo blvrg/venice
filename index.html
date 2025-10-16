@@ -1015,24 +1015,12 @@
                         const data = await response.json();
                         const aiReply = data.choices[0].message.content;
 
-                        addMessage("ai", aiReply);
-
-                        conversationHistory.push({
-                            role: "assistant",
-                            content: aiReply,
-                            type: "text",
-                        });
-
-                        // Trim history
-                        if (conversationHistory.length > 20) {
-                            conversationHistory =
-                                conversationHistory.slice(-20);
-                        }
-
-                        saveConversation();
+                        const messagesDiv = document.getElementById("messages");
 
                         if (currentVoiceMode) {
-                            const lastDiv = document.getElementById("messages").lastChild;
+                            const messageDiv = document.createElement("div");
+                            messageDiv.classList.add("message", "ai-message");
+
                             const speechRequest = {
                                 input: aiReply,
                                 model: "tts-kokoro",
@@ -1066,14 +1054,40 @@
                                     document.createElement("audio");
                                 audioElement.controls = true;
                                 audioElement.src = audioUrl;
-                                lastDiv.appendChild(audioElement);
+                                messageDiv.appendChild(audioElement);
+
+                                const transcriptDetails = document.createElement("details");
+                                transcriptDetails.style.marginTop = "8px";
+                                transcriptDetails.innerHTML = `<summary>View transcript</summary><p>${aiReply}</p>`;
+                                messageDiv.appendChild(transcriptDetails);
                             } catch (error) {
                                 console.error("Error generating voice:", error);
-                                const errorP = document.createElement("p");
-                                errorP.innerHTML = `<em>Voice generation failed: ${error.message}</em>`;
-                                lastDiv.appendChild(errorP);
+                                const errorDiv = document.createElement("div");
+                                errorDiv.innerHTML = `<em>Error generating voice: ${error.message}</em>`;
+                                messageDiv.appendChild(errorDiv);
                             }
+
+                            messagesDiv.appendChild(messageDiv);
+                        } else {
+                            const messageDiv = addMessage("ai", aiReply);
                         }
+
+                        const chatContainer = document.getElementById("chat-container");
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                        conversationHistory.push({
+                            role: "assistant",
+                            content: aiReply,
+                            type: "text",
+                        });
+
+                        // Trim history
+                        if (conversationHistory.length > 20) {
+                            conversationHistory =
+                                conversationHistory.slice(-20);
+                        }
+
+                        saveConversation();
                     }
 
                     isImageMode = false;
