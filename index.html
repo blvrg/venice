@@ -694,8 +694,12 @@
                 });
             }
 
-            function clearConversation() {
-                if (confirm("Clear the conversation history?")) {
+            function clearConversation(skipConfirm = false) {
+                if (!skipConfirm && confirm("Clear the conversation history?")) {
+                    conversationHistory = [];
+                    saveConversation();
+                    document.getElementById("messages").innerHTML = "";
+                } else if (skipConfirm) {
                     conversationHistory = [];
                     saveConversation();
                     document.getElementById("messages").innerHTML = "";
@@ -710,7 +714,7 @@
                     if (!proceed) {
                         return;
                     }
-                    clearConversation();
+                    clearConversation(true);
                 }
                 showCharacterSelection();
             }
