@@ -200,21 +200,6 @@
             #voice-toggle:hover {
                 transform: scale(1.05);
             }
-            #edit-container {
-                display: none;
-                flex-direction: row;
-                align-items: center;
-                gap: 5px;
-            }
-            #edit-container label {
-                font-size: 12px;
-                font-weight: 500;
-                color: #667eea;
-            }
-            #edit-mode {
-                width: 16px;
-                height: 16px;
-            }
             #slug-note {
                 background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
                 border: 1px solid #ffeaa7;
@@ -312,12 +297,6 @@
                     font-size: 18px;
                     padding: 10px;
                 }
-                #edit-container {
-                    gap: 2px;
-                }
-                #edit-container label {
-                    font-size: 10px;
-                }
                 #setup-form {
                     margin: 20px;
                     padding: 20px;
@@ -358,10 +337,6 @@
                 placeholder="Type your message or image prompt..."
             />
             <button id="image-toggle" onclick="toggleImageMode()">📷</button>
-            <div id="edit-container">
-                <label for="edit-mode">Edit</label>
-                <input type="checkbox" id="edit-mode" />
-            </div>
             <button id="voice-toggle" onclick="toggleVoiceMode()">🗣️</button>
             <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
@@ -501,33 +476,12 @@
                     isVoiceMode = false;
                 }
                 isImageMode = !isImageMode;
-                const editContainer = document.getElementById("edit-container");
-                const editCheckbox = document.getElementById("edit-mode");
-                if (isImageMode) {
-                    editContainer.style.display = "flex";
-                    const hasCharacter =
-                        characterSlug &&
-                        characterSlug !== "YOUR_CHARACTER_SLUG_HERE" &&
-                        characterPhotoUrl &&
-                        characterPhotoUrl !==
-                            "https://outerface.venice.ai/api/characters/YOUR_PHOTO_ID/photo";
-                    editCheckbox.disabled = !hasCharacter;
-                    if (!hasCharacter) {
-                        editCheckbox.checked = false;
-                    }
-                } else {
-                    editContainer.style.display = "none";
-                    editCheckbox.checked = false;
-                }
                 updateToggleStyles();
             }
 
             function toggleVoiceMode() {
                 if (isImageMode) {
                     isImageMode = false;
-                    document.getElementById("edit-container").style.display =
-                        "none";
-                    document.getElementById("edit-mode").checked = false;
                 }
                 isVoiceMode = !isVoiceMode;
                 updateToggleStyles();
@@ -638,9 +592,6 @@
 
                 const currentImageMode = isImageMode;
                 const currentVoiceMode = isVoiceMode;
-                const doEdit =
-                    currentImageMode &&
-                    document.getElementById("edit-mode").checked;
 
                 // Add user message to chat
                 addMessage("user", message);
@@ -652,15 +603,15 @@
                     if (currentImageMode) {
                         let base64Image;
 
-                        if (
-                            doEdit &&
+                        const hasCharacter =
                             characterSlug &&
                             characterSlug !== "YOUR_CHARACTER_SLUG_HERE" &&
                             characterPhotoUrl &&
                             characterPhotoUrl !==
-                                "https://outerface.venice.ai/api/characters/YOUR_PHOTO_ID/photo"
-                        ) {
-                            // Character-aware: Edit using photo URL
+                                "https://outerface.venice.ai/api/characters/YOUR_PHOTO_ID/photo";
+
+                        if (hasCharacter) {
+                            // Edit using photo URL
                             try {
                                 const editRequest = {
                                     prompt: message,
@@ -891,9 +842,6 @@
                     }
 
                     isImageMode = false;
-                    document.getElementById("edit-container").style.display =
-                        "none";
-                    document.getElementById("edit-mode").checked = false;
                     if (currentVoiceMode) isVoiceMode = false;
                     updateToggleStyles();
                 } catch (error) {
