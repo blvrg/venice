@@ -374,6 +374,8 @@
                 localStorage.getItem("veniceCharacterName") || "";
             let characterPhotoUrl =
                 localStorage.getItem("veniceCharacterPhotoUrl") || "";
+            let characterPhotoBase64 =
+                localStorage.getItem("veniceCharacterPhotoBase64") || "";
 
             let conversationHistory = [];
             let isImageMode = false;
@@ -433,8 +435,10 @@
                     );
                     characterName = "";
                     characterPhotoUrl = "";
+                    characterPhotoBase64 = "";
                     localStorage.removeItem("veniceCharacterName");
                     localStorage.removeItem("veniceCharacterPhotoUrl");
+                    localStorage.removeItem("veniceCharacterPhotoBase64");
                     showChat();
                 } finally {
                     submitBtn.disabled = false;
@@ -446,6 +450,7 @@
                 if (!characterSlug) {
                     characterName = "";
                     characterPhotoUrl = "";
+                    characterPhotoBase64 = "";
                     return;
                 }
 
@@ -469,11 +474,28 @@
                 characterName = data.data?.name || data.name || characterSlug;
                 characterPhotoUrl = data.data?.photoUrl || data.photoUrl || "";
 
+                // Fetch and convert photo to base64 to bypass CORS for <img>
+                if (characterPhotoUrl) {
+                    try {
+                        const imgResponse = await fetch(characterPhotoUrl);
+                        if (!imgResponse.ok) throw new Error('Image fetch failed');
+                        const imgBlob = await imgResponse.blob();
+                        characterPhotoBase64 = await blobToBase64(imgBlob);
+                    } catch (error) {
+                        console.error('Failed to fetch character photo:', error);
+                        characterPhotoBase64 = '';
+                    }
+                }
+
                 // Save to localStorage
                 localStorage.setItem("veniceCharacterName", characterName);
                 localStorage.setItem(
                     "veniceCharacterPhotoUrl",
                     characterPhotoUrl,
+                );
+                localStorage.setItem(
+                    "veniceCharacterPhotoBase64",
+                    characterPhotoBase64,
                 );
             }
 
@@ -485,12 +507,12 @@
                     "flex";
 
                 // Show character preview if details provided
-                if (characterName && characterPhotoUrl) {
+                if (characterName && characterPhotoBase64) {
                     const previewDiv =
                         document.getElementById("character-preview");
                     const previewImg = document.getElementById("preview-img");
                     const previewName = document.getElementById("preview-name");
-                    previewImg.src = characterPhotoUrl;
+                    previewImg.src = `data:image/jpeg;base64,${characterPhotoBase64}`;
                     previewName.textContent = characterName;
                     previewDiv.style.display = "block";
                 }
