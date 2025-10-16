@@ -232,6 +232,9 @@
                 padding-bottom: 15px;
                 border-bottom: 1px solid #e0e0e0;
                 border-radius: 20px 20px 0 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
             }
             #character-preview img {
                 max-width: 80px;
@@ -244,6 +247,19 @@
                 font-weight: 500;
                 color: #667eea;
                 font-size: 16px;
+            }
+            #change-character-btn {
+                padding: 8px 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 12px;
+                font-family: "Poppins", sans-serif;
+            }
+            #change-character-btn:hover {
+                transform: translateY(-1px);
             }
             .message audio {
                 width: 100%;
@@ -258,6 +274,23 @@
                 text-align: left;
                 margin-right: 20%;
                 animation: pulse 1.5s ease-in-out infinite alternate;
+            }
+            #clear-chat-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 12px;
+                font-family: "Poppins", sans-serif;
+                z-index: 10;
+            }
+            #clear-chat-btn:hover {
+                transform: translateY(-1px);
             }
             @keyframes pulse {
                 from {
@@ -312,6 +345,14 @@
                     font-size: 12px;
                     padding: 4px;
                 }
+                #change-character-btn {
+                    font-size: 10px;
+                    padding: 6px 10px;
+                }
+                #clear-chat-btn {
+                    font-size: 10px;
+                    padding: 6px 10px;
+                }
                 #setup-form,
                 #character-form,
                 #voice-form {
@@ -354,10 +395,15 @@
         </div>
 
         <div id="chat-container" style="display: none">
+            <button id="clear-chat-btn" onclick="clearChat()">Clear Chat</button>
             <div id="character-preview" style="display: none">
-                <img id="preview-img" src="" alt="Character Photo" />
-                <p id="preview-name"></p>
+                <div>
+                    <img id="preview-img" src="" alt="Character Photo" />
+                    <p id="preview-name"></p>
+                </div>
+                <button id="change-character-btn" onclick="changeCharacter()">Change Character</button>
             </div>
+            <div id="messages-container"></div>
         </div>
 
         <div id="input-container" style="display: none">
@@ -380,7 +426,7 @@
             let characterPhotoUrl =
                 localStorage.getItem("veniceCharacterPhotoUrl") || "";
 
-            let conversationHistory = [];
+            let conversationHistory = JSON.parse(localStorage.getItem("veniceConversationHistory") || "[]");
             let isImageMode = false;
             let isVoiceMode = false;
             let isProcessing = false;
@@ -390,603 +436,4 @@
 
             function getDisplayUrl(url) {
                 if (url && url.startsWith('https://outerface.venice.ai/api/characters/')) {
-                    const encoded = encodeURIComponent(url);
-                    return `https://venice.ai/_next/image?url=${encoded}&w=640&q=75`;
-                }
-                return url;
-            }
-
-            // Check if setup is complete
-            async function initApp() {
-                if (apiKey && apiKey !== "YOUR_API_KEY_HERE") {
-                    if (characterSlug) {
-                        showChat();
-                    } else {
-                        await showCharacterSelection();
-                    }
-                } else {
-                    showSetup();
-                }
-            }
-
-            function showSetup() {
-                document.getElementById("setup-overlay").style.display = "flex";
-                document
-                    .getElementById("setup-form")
-                    .addEventListener("submit", handleSetup);
-                document.getElementById("api-key-input").value = apiKey;
-            }
-
-            async function handleSetup(e) {
-                e.preventDefault();
-                const newApiKey = document
-                    .getElementById("api-key-input")
-                    .value.trim();
-
-                if (!newApiKey) {
-                    alert("API Key is required!");
-                    return;
-                }
-
-                apiKey = newApiKey;
-
-                // Save to localStorage
-                localStorage.setItem("veniceApiKey", apiKey);
-
-                const submitBtn = document.getElementById("setup-submit");
-                submitBtn.disabled = true;
-                submitBtn.textContent = "Loading...";
-
-                try {
-                    await showCharacterSelection();
-                } catch (error) {
-                    alert(
-                        `Error: ${error.message}. Continuing without characters.`,
-                    );
-                    showVoiceSelection();
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = "Continue";
-                }
-            }
-
-            async function fetchCharacters() {
-                try {
-                    const response = await fetch(
-                        "https://api.venice.ai/api/v1/characters",
-                        {
-                            headers: {
-                                Authorization: `Bearer ${apiKey}`,
-                            },
-                        },
-                    );
-
-                    if (!response.ok) {
-                        throw new Error(response.statusText);
-                    }
-
-                    const data = await response.json();
-                    return data.data || [];
-                } catch (error) {
-                    console.error("Error fetching characters:", error);
-                    return [];
-                }
-            }
-
-            function populateCharacterSelect(chars) {
-                const select = document.getElementById("character-select");
-                select.innerHTML = '<option value="">Chat without a character</option>';
-                chars.forEach((char) => {
-                    const opt = document.createElement("option");
-                    opt.value = char.slug;
-                    opt.textContent = char.name;
-                    select.appendChild(opt);
-                });
-            }
-
-            async function showCharacterSelection() {
-                charactersList = await fetchCharacters();
-                populateCharacterSelect(charactersList);
-                document.getElementById("character-selection-overlay").style.display = "flex";
-                document.getElementById("character-form").onsubmit = handleCharacterSelect;
-            }
-
-            function handleCharacterSelect(e) {
-                e.preventDefault();
-                const slug = document.getElementById("character-select").value;
-                if (slug) {
-                    const char = charactersList.find((c) => c.slug === slug);
-                    characterSlug = slug;
-                    characterName = char.name;
-                    characterPhotoUrl = char.photoUrl;
-                    localStorage.setItem("veniceCharacterSlug", slug);
-                    localStorage.setItem("veniceCharacterName", characterName);
-                    localStorage.setItem("veniceCharacterPhotoUrl", characterPhotoUrl);
-                } else {
-                    characterSlug = "";
-                    characterName = "";
-                    characterPhotoUrl = "";
-                    localStorage.removeItem("veniceCharacterSlug");
-                    localStorage.removeItem("veniceCharacterName");
-                    localStorage.removeItem("veniceCharacterPhotoUrl");
-                }
-                document.getElementById("character-selection-overlay").style.display = "none";
-                showVoiceSelection();
-            }
-
-            function populateVoiceSelect() {
-                const select = document.getElementById("voice-select");
-                select.innerHTML = "";
-                voices.forEach((voice) => {
-                    const opt = document.createElement("option");
-                    opt.value = voice;
-                    opt.textContent = voice;
-                    select.appendChild(opt);
-                });
-                const savedVoice = localStorage.getItem("veniceSelectedVoice") || "af_sky";
-                select.value = savedVoice;
-            }
-
-            function showVoiceSelection() {
-                populateVoiceSelect();
-                document.getElementById("voice-selection-overlay").style.display = "flex";
-                document.getElementById("voice-form").onsubmit = handleVoiceSelect;
-            }
-
-            function handleVoiceSelect(e) {
-                e.preventDefault();
-                const voice = document.getElementById("voice-select").value;
-                localStorage.setItem("veniceSelectedVoice", voice);
-                document.getElementById("voice-selection-overlay").style.display = "none";
-                showChat();
-            }
-
-            function showChat() {
-                document.getElementById("setup-overlay").style.display = "none";
-                document.getElementById("character-selection-overlay").style.display = "none";
-                document.getElementById("voice-selection-overlay").style.display = "none";
-                document.getElementById("chat-container").style.display =
-                    "flex";
-                document.getElementById("input-container").style.display =
-                    "flex";
-
-                // Show character preview if details provided
-                if (characterName && characterPhotoUrl) {
-                    const previewDiv =
-                        document.getElementById("character-preview");
-                    const previewImg = document.getElementById("preview-img");
-                    const previewName = document.getElementById("preview-name");
-                    previewImg.src = getDisplayUrl(characterPhotoUrl);
-                    previewName.textContent = characterName;
-                    previewDiv.style.display = "block";
-                }
-            }
-
-            function toggleImageMode() {
-                if (isVoiceMode) {
-                    isVoiceMode = false;
-                }
-                isImageMode = !isImageMode;
-                updateToggleStyles();
-            }
-
-            function toggleVoiceMode() {
-                if (isImageMode) {
-                    isImageMode = false;
-                }
-                isVoiceMode = !isVoiceMode;
-                updateToggleStyles();
-            }
-
-            function updateToggleStyles() {
-                const imageToggle = document.getElementById("image-toggle");
-                const voiceToggle = document.getElementById("voice-toggle");
-                imageToggle.classList.toggle("active", isImageMode);
-                voiceToggle.classList.toggle("active", isVoiceMode);
-            }
-
-            // Initialize toggles as inactive
-            updateToggleStyles();
-
-            function showIndicator(type) {
-                const indicator = document.createElement("div");
-                indicator.id = "indicator";
-                indicator.classList.add("message", "ai-message");
-                indicator.innerHTML = `<strong>${type === "image" ? "Generating image..." : "Typing..."}</strong>`;
-                const chatContainer = document.getElementById("chat-container");
-                chatContainer.appendChild(indicator);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-
-            function removeIndicator() {
-                const ind = document.getElementById("indicator");
-                if (ind) ind.remove();
-            }
-
-            // Helper: Convert blob to base64
-            function blobToBase64(blob) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () =>
-                        resolve(reader.result.split(",")[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-            }
-
-            // Helper: Generate image description using vision model
-            async function describeImage(base64Image) {
-                try {
-                    const visionRequest = {
-                        model: "mistral-31-24b",
-                        messages: [
-                            {
-                                role: "system",
-                                content:
-                                    "You are a helpful assistant that describes images in detail.",
-                            },
-                            {
-                                role: "user",
-                                content: [
-                                    {
-                                        type: "text",
-                                        text: "Describe this image in vivid detail, focusing on the main subject, setting, colors, and any notable features.",
-                                    },
-                                    {
-                                        type: "image_url",
-                                        image_url: {
-                                            url: `data:image/webp;base64,${base64Image}`,
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                        max_tokens: 200,
-                        temperature: 0.3,
-                    };
-                    const response = await fetch(
-                        "https://api.venice.ai/api/v1/chat/completions",
-                        {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                Authorization: `Bearer ${apiKey}`,
-                            },
-                            body: JSON.stringify(visionRequest),
-                        },
-                    );
-                    if (!response.ok) throw new Error("Vision API failed");
-                    const data = await response.json();
-                    return data.choices[0].message.content;
-                } catch (error) {
-                    console.error("Error describing image:", error);
-                    return "an image generated based on the prompt"; // Fallback
-                }
-            }
-
-            async function sendMessage() {
-                if (isProcessing) return;
-                if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-                    alert(
-                        "Please edit the apiKey variable in the script to include your actual API key!",
-                    );
-                    return;
-                }
-
-                const userInput = document.getElementById("user-input");
-                const message = userInput.value.trim();
-                if (!message) return;
-
-                isProcessing = true;
-                const sendBtn = document.getElementById("send-btn");
-                sendBtn.disabled = true;
-
-                const currentImageMode = isImageMode;
-                const currentVoiceMode = isVoiceMode;
-                const hasCharacter =
-                    characterSlug &&
-                    characterSlug !== "YOUR_CHARACTER_SLUG_HERE" &&
-                    characterPhotoUrl &&
-                    characterPhotoUrl !==
-                        "https://outerface.venice.ai/api/characters/YOUR_PHOTO_ID/photo";
-
-                // Add user message to chat
-                addMessage("user", message);
-                userInput.value = "";
-
-                showIndicator(currentImageMode ? "image" : "text");
-
-                try {
-                    if (currentImageMode) {
-                        let base64Image;
-
-                        if (hasCharacter) {
-                            // Edit using photo URL
-                            try {
-                                const editRequest = {
-                                    prompt: message,
-                                    image: characterPhotoUrl, // Direct URL—no blob conversion
-                                };
-
-                                const editResponse = await fetch(
-                                    "https://api.venice.ai/api/v1/image/edit",
-                                    {
-                                        method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${apiKey}`,
-                                        },
-                                        body: JSON.stringify(editRequest),
-                                    },
-                                );
-
-                                if (!editResponse.ok) {
-                                    const errorData = await editResponse.text(); // Text for error
-                                    throw new Error(
-                                        errorData || "Image edit failed",
-                                    );
-                                }
-
-                                // Handle binary response for edit
-                                const editBlob = await editResponse.blob();
-                                base64Image = await blobToBase64(editBlob);
-                            } catch (error) {
-                                addMessage(
-                                    "ai",
-                                    `Error editing character image: ${error.message}. Falling back to generation.`,
-                                );
-                                // Fallback to generate below
-                            }
-                        }
-
-                        if (!base64Image) {
-                            // Fallback: Standard generation
-                            const generateRequest = {
-                                model: "hidream",
-                                prompt: message,
-                                width: 1024,
-                                height: 1024,
-                                steps: 20,
-                                cfg_scale: 7.5,
-                                format: "webp",
-                                variants: 1,
-                                safe_mode: false,
-                            };
-
-                            const generateResponse = await fetch(
-                                "https://api.venice.ai/api/v1/image/generate",
-                                {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        Authorization: `Bearer ${apiKey}`,
-                                    },
-                                    body: JSON.stringify(generateRequest),
-                                },
-                            );
-
-                            if (!generateResponse.ok) {
-                                const errorData = await generateResponse.json();
-                                throw new Error(
-                                    errorData.error ||
-                                        "Image generation failed",
-                                );
-                            }
-
-                            const generateData = await generateResponse.json();
-                            base64Image = generateData.images[0];
-                        }
-
-                        // Display the image (base64 embeds directly—no CORS)
-                        const imageDiv = addImageMessage(base64Image);
-
-                        // Generate description and add collapsed
-                        const description = await describeImage(base64Image);
-                        const details = document.createElement("details");
-                        details.innerHTML = `<summary>View image description</summary><p>${description}</p>`;
-                        imageDiv.appendChild(details);
-
-                        // Update history
-                        conversationHistory.push({
-                            role: "user",
-                            content: message,
-                        });
-                        conversationHistory.push({
-                            role: "assistant",
-                            content: `Generated image: ${description}`,
-                        });
-
-                        // Trim history
-                        if (conversationHistory.length > 20) {
-                            conversationHistory =
-                                conversationHistory.slice(-20);
-                        }
-                    } else {
-                        // Text Chat
-                        const veniceParams = {
-                            enable_web_search: "auto",
-                            include_venice_system_prompt: true,
-                        };
-                        if (
-                            characterSlug &&
-                            characterSlug !== "YOUR_CHARACTER_SLUG_HERE"
-                        ) {
-                            veniceParams.character_slug = characterSlug;
-                        }
-
-                        let messages = [...conversationHistory];
-                        if (
-                            !characterSlug ||
-                            characterSlug === "YOUR_CHARACTER_SLUG_HERE"
-                        ) {
-                            messages = [
-                                {
-                                    role: "system",
-                                    content: "You are a helpful assistant",
-                                },
-                                ...messages,
-                            ];
-                        }
-                        messages.push({ role: "user", content: message });
-
-                        const requestBody = {
-                            model: "venice-uncensored",
-                            messages: messages,
-                            venice_parameters: veniceParams,
-                            frequency_penalty: 0,
-                            presence_penalty: 0,
-                            max_tokens: 1000,
-                            max_completion_tokens: 998,
-                            temperature: 1,
-                            top_p: 0.1,
-                            stream: false,
-                        };
-
-                        const response = await fetch(
-                            "https://api.venice.ai/api/v1/chat/completions",
-                            {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    Authorization: `Bearer ${apiKey}`,
-                                },
-                                body: JSON.stringify(requestBody),
-                            },
-                        );
-
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(
-                                errorData.error || "API request failed",
-                            );
-                        }
-
-                        const data = await response.json();
-                        const aiReply = data.choices[0].message.content;
-
-                        const chatContainer = document.getElementById("chat-container");
-
-                        if (currentVoiceMode) {
-                            const messageDiv = document.createElement("div");
-                            messageDiv.classList.add("message", "ai-message");
-
-                            const speechRequest = {
-                                input: aiReply,
-                                model: "tts-kokoro",
-                                voice: localStorage.getItem("veniceSelectedVoice") || "af_sky",
-                                response_format: "mp3",
-                                speed: 1,
-                                streaming: false,
-                            };
-
-                            try {
-                                const speechResponse = await fetch(
-                                    "https://api.venice.ai/api/v1/audio/speech",
-                                    {
-                                        method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${apiKey}`,
-                                        },
-                                        body: JSON.stringify(speechRequest),
-                                    },
-                                );
-
-                                if (!speechResponse.ok) {
-                                    throw new Error("Speech generation failed");
-                                }
-
-                                const audioBlob = await speechResponse.blob();
-                                const audioUrl = URL.createObjectURL(audioBlob);
-
-                                const audioElement =
-                                    document.createElement("audio");
-                                audioElement.controls = true;
-                                audioElement.src = audioUrl;
-                                messageDiv.appendChild(audioElement);
-
-                                const transcriptDetails = document.createElement("details");
-                                transcriptDetails.style.marginTop = "8px";
-                                transcriptDetails.innerHTML = `<summary>View transcript</summary><p>${aiReply}</p>`;
-                                messageDiv.appendChild(transcriptDetails);
-                            } catch (error) {
-                                console.error("Error generating voice:", error);
-                                const errorDiv = document.createElement("div");
-                                errorDiv.innerHTML = `<em>Error generating voice: ${error.message}</em>`;
-                                messageDiv.appendChild(errorDiv);
-                            }
-
-                            chatContainer.appendChild(messageDiv);
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                        } else {
-                            const messageDiv = addMessage("ai", aiReply);
-                        }
-
-                        conversationHistory.push({
-                            role: "user",
-                            content: message,
-                        });
-                        conversationHistory.push({
-                            role: "assistant",
-                            content: aiReply,
-                        });
-
-                        if (conversationHistory.length > 20) {
-                            conversationHistory =
-                                conversationHistory.slice(-20);
-                        }
-                    }
-
-                    isImageMode = false;
-                    if (currentVoiceMode) isVoiceMode = false;
-                    updateToggleStyles();
-                } catch (error) {
-                    addMessage("ai", `Error: ${error.message}`);
-                } finally {
-                    removeIndicator();
-                    isProcessing = false;
-                    sendBtn.disabled = false;
-                }
-            }
-
-            function addMessage(sender, text) {
-                const chatContainer = document.getElementById("chat-container");
-                const messageDiv = document.createElement("div");
-                messageDiv.classList.add(
-                    "message",
-                    sender === "user" ? "user-message" : "ai-message",
-                );
-                messageDiv.innerHTML = `<strong>${sender === "user" ? "You" : characterName || "AI"}:</strong> ${text}`;
-                chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-                return messageDiv; // Return the div for potential appending
-            }
-
-            function addImageMessage(base64Image) {
-                const chatContainer = document.getElementById("chat-container");
-                const messageDiv = document.createElement("div");
-                messageDiv.classList.add(
-                    "message",
-                    "ai-message",
-                    "image-message",
-                );
-                messageDiv.innerHTML = `<img src="data:image/webp;base64,${base64Image}" alt="Generated Image" />`;
-                chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-                return messageDiv;
-            }
-
-            // Allow Enter key to send message
-            document
-                .getElementById("user-input")
-                .addEventListener("keypress", function (e) {
-                    if (e.key === "Enter" && !isProcessing) {
-                        sendMessage();
-                    }
-                });
-
-            // Init on load
-            initApp();
-        </script>
-    </body>
-</html>
+                    const encoded
