@@ -355,6 +355,14 @@
             let isVoiceMode = false;
             let isProcessing = false;
 
+            function getDisplayUrl(url) {
+                if (url && url.startsWith('https://outerface.venice.ai/api/characters/')) {
+                    const encoded = encodeURIComponent(url);
+                    return `https://venice.ai/_next/image?url=${encoded}&w=640&q=75`;
+                }
+                return url;
+            }
+
             // Check if setup is complete
             async function initApp() {
                 if (apiKey && apiKey !== "YOUR_API_KEY_HERE") {
@@ -465,7 +473,7 @@
                         document.getElementById("character-preview");
                     const previewImg = document.getElementById("preview-img");
                     const previewName = document.getElementById("preview-name");
-                    previewImg.src = characterPhotoUrl;
+                    previewImg.src = getDisplayUrl(characterPhotoUrl);
                     previewName.textContent = characterName;
                     previewDiv.style.display = "block";
                 }
