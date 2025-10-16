@@ -112,9 +112,9 @@
                 position: relative;
             }
             #menu-btn {
-                padding: 8px 12px;
+                padding: 10px;
                 font-size: 20px;
-                border-radius: 50%;
+                border-radius: 8px;
                 color: white;
                 border: none;
                 cursor: pointer;
@@ -337,7 +337,7 @@
                     padding: 10px 10px 0;
                 }
                 #menu-btn {
-                    padding: 6px 10px;
+                    padding: 8px;
                     font-size: 18px;
                 }
                 #menu-dropdown {
@@ -702,10 +702,11 @@
             function changeCharacter() {
                 toggleMenu();
                 if (conversationHistory.length > 0) {
-                    const keep = confirm("Keep the current conversation history with the new character?");
-                    if (!keep) {
-                        clearConversation();
+                    const proceed = confirm("Changing characters will clear the current conversation. Proceed?");
+                    if (!proceed) {
+                        return;
                     }
+                    clearConversation();
                 }
                 showCharacterSelection();
             }
