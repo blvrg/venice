@@ -791,10 +791,12 @@
                         const data = await response.json();
                         const aiReply = data.choices[0].message.content;
 
-                        const messageDiv = addMessage("ai", aiReply);
+                        const chatContainer = document.getElementById("chat-container");
 
-                        // Generate voice if voice mode is enabled
                         if (currentVoiceMode) {
+                            const messageDiv = document.createElement("div");
+                            messageDiv.classList.add("message", "ai-message");
+
                             const speechRequest = {
                                 input: aiReply,
                                 model: "tts-kokoro",
@@ -837,9 +839,14 @@
                             } catch (error) {
                                 console.error("Error generating voice:", error);
                                 const errorDiv = document.createElement("div");
-                                errorDiv.innerHTML = `<br><em>Error generating voice: ${error.message}</em>`;
+                                errorDiv.innerHTML = `<em>Error generating voice: ${error.message}</em>`;
                                 messageDiv.appendChild(errorDiv);
                             }
+
+                            chatContainer.appendChild(messageDiv);
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        } else {
+                            const messageDiv = addMessage("ai", aiReply);
                         }
 
                         conversationHistory.push({
