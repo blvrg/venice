@@ -250,12 +250,10 @@
                 transition:
                     transform 0.2s,
                     box-shadow 0.2s;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
                 flex-shrink: 0;
             }
             button:hover:not(:disabled) {
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
             }
             button:disabled {
                 opacity: 0.5;
@@ -694,17 +692,21 @@
                 });
             }
 
-            function clearConversation(skipConfirm = false) {
-                if (!skipConfirm && confirm("Clear the conversation history?")) {
-                    conversationHistory = [];
-                    saveConversation();
-                    document.getElementById("messages").innerHTML = "";
-                } else if (skipConfirm) {
+            function clearConversation(skipConfirm = false, closeMenu = true) {
+                let shouldClear = false;
+                if (!skipConfirm) {
+                    shouldClear = confirm("Clear the conversation history?");
+                } else {
+                    shouldClear = true;
+                }
+                if (shouldClear) {
                     conversationHistory = [];
                     saveConversation();
                     document.getElementById("messages").innerHTML = "";
                 }
-                toggleMenu();
+                if (closeMenu) {
+                    toggleMenu();
+                }
             }
 
             function changeCharacter() {
@@ -714,7 +716,7 @@
                     if (!proceed) {
                         return;
                     }
-                    clearConversation(true);
+                    clearConversation(true, false);
                 }
                 showCharacterSelection();
             }
