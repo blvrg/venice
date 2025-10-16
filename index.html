@@ -114,7 +114,7 @@
             #menu-btn {
                 padding: 10px;
                 font-size: 20px;
-                border-radius: 8px;
+                border-radius: 4px;
                 color: white;
                 border: none;
                 cursor: pointer;
@@ -131,11 +131,12 @@
                 top: 100%;
                 right: 0;
                 background: white;
-                border-radius: 10px;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-                padding: 10px 0;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                padding: 0;
                 z-index: 1001;
                 min-width: 180px;
+                border: 1px solid #e0e0e0;
             }
             #menu-dropdown button {
                 display: block;
@@ -147,14 +148,17 @@
                 cursor: pointer;
                 font-family: "Poppins", sans-serif;
                 font-size: 14px;
-                transition: background 0.2s;
+                transition: background 0.2s, color 0.2s;
             }
             #menu-dropdown button:hover {
-                background: #f0f0f0;
+                background: rgba(102, 126, 234, 0.08);
             }
             #clear-menu {
                 color: #ff4757;
-                border-bottom: 1px solid #e0e0e0;
+                border-top: 1px solid #e0e0e0;
+            }
+            #clear-menu:hover {
+                background: rgba(255, 71, 87, 0.08);
             }
             #change-char-menu,
             #change-voice-menu {
