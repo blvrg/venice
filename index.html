@@ -22,7 +22,8 @@
                 box-sizing: border-box;
             }
             #setup-overlay,
-            #character-selection-overlay {
+            #character-selection-overlay,
+            #voice-selection-overlay {
                 position: fixed;
                 top: 0;
                 left: 0;
@@ -35,7 +36,8 @@
                 z-index: 1000;
             }
             #setup-form,
-            #character-form {
+            #character-form,
+            #voice-form {
                 background: white;
                 padding: 30px;
                 border-radius: 20px;
@@ -44,13 +46,15 @@
                 width: 90%;
             }
             #setup-form h2,
-            #character-form h2 {
+            #character-form h2,
+            #voice-form h2 {
                 margin-top: 0;
                 color: #667eea;
                 text-align: center;
             }
             #setup-form input,
-            #character-form select {
+            #character-form select,
+            #voice-form select {
                 width: 100%;
                 padding: 12px;
                 margin-bottom: 15px;
@@ -60,12 +64,14 @@
                 box-sizing: border-box;
             }
             #setup-form input:focus,
-            #character-form select:focus {
+            #character-form select:focus,
+            #voice-form select:focus {
                 outline: none;
                 border-color: #a8edea;
             }
             #setup-form button,
-            #character-form button {
+            #character-form button,
+            #voice-form button {
                 width: 100%;
                 padding: 12px;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -77,11 +83,13 @@
                 font-family: "Poppins", sans-serif;
             }
             #setup-form button:hover,
-            #character-form button:hover {
+            #character-form button:hover,
+            #voice-form button:hover {
                 transform: translateY(-2px);
             }
             #setup-form button:disabled,
-            #character-form button:disabled {
+            #character-form button:disabled,
+            #voice-form button:disabled {
                 opacity: 0.5;
                 cursor: not-allowed;
             }
@@ -217,30 +225,6 @@
             #voice-toggle:hover {
                 transform: scale(1.05);
             }
-            #voice-select-container {
-                display: none;
-                flex-direction: row;
-                align-items: center;
-                gap: 5px;
-            }
-            #voice-select-container label {
-                font-size: 12px;
-                font-weight: 500;
-                color: #667eea;
-                white-space: nowrap;
-            }
-            #voice-select {
-                padding: 8px;
-                border: 2px solid #e0e0e0;
-                border-radius: 10px;
-                font-family: "Poppins", sans-serif;
-                font-size: 14px;
-                min-width: 80px;
-            }
-            #voice-select:focus {
-                outline: none;
-                border-color: #a8edea;
-            }
             #character-preview {
                 text-align: center;
                 margin-bottom: 20px;
@@ -328,19 +312,9 @@
                     font-size: 12px;
                     padding: 4px;
                 }
-                #voice-select-container {
-                    gap: 2px;
-                }
-                #voice-select-container label {
-                    font-size: 10px;
-                }
-                #voice-select {
-                    font-size: 12px;
-                    padding: 4px;
-                    min-width: 60px;
-                }
                 #setup-form,
-                #character-form {
+                #character-form,
+                #voice-form {
                     margin: 20px;
                     padding: 20px;
                 }
@@ -367,6 +341,14 @@
                 <select id="character-select">
                     <option value="">Chat without a character</option>
                 </select>
+                <button type="submit">Continue</button>
+            </form>
+        </div>
+
+        <div id="voice-selection-overlay" style="display: none;">
+            <form id="voice-form">
+                <h2>Select Voice</h2>
+                <select id="voice-select"></select>
                 <button type="submit">Start Chatting</button>
             </form>
         </div>
@@ -386,10 +368,6 @@
             />
             <button id="image-toggle" onclick="toggleImageMode()">📷</button>
             <button id="voice-toggle" onclick="toggleVoiceMode()">🗣️</button>
-            <div id="voice-select-container">
-                <label for="voice-select">Voice:</label>
-                <select id="voice-select"></select>
-            </div>
             <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
 
@@ -465,7 +443,7 @@
                     alert(
                         `Error: ${error.message}. Continuing without characters.`,
                     );
-                    showChat();
+                    showVoiceSelection();
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.textContent = "Continue";
@@ -533,12 +511,40 @@
                     localStorage.removeItem("veniceCharacterPhotoUrl");
                 }
                 document.getElementById("character-selection-overlay").style.display = "none";
+                showVoiceSelection();
+            }
+
+            function populateVoiceSelect() {
+                const select = document.getElementById("voice-select");
+                select.innerHTML = "";
+                voices.forEach((voice) => {
+                    const opt = document.createElement("option");
+                    opt.value = voice;
+                    opt.textContent = voice;
+                    select.appendChild(opt);
+                });
+                const savedVoice = localStorage.getItem("veniceSelectedVoice") || "af_sky";
+                select.value = savedVoice;
+            }
+
+            function showVoiceSelection() {
+                populateVoiceSelect();
+                document.getElementById("voice-selection-overlay").style.display = "flex";
+                document.getElementById("voice-form").onsubmit = handleVoiceSelect;
+            }
+
+            function handleVoiceSelect(e) {
+                e.preventDefault();
+                const voice = document.getElementById("voice-select").value;
+                localStorage.setItem("veniceSelectedVoice", voice);
+                document.getElementById("voice-selection-overlay").style.display = "none";
                 showChat();
             }
 
             function showChat() {
                 document.getElementById("setup-overlay").style.display = "none";
                 document.getElementById("character-selection-overlay").style.display = "none";
+                document.getElementById("voice-selection-overlay").style.display = "none";
                 document.getElementById("chat-container").style.display =
                     "flex";
                 document.getElementById("input-container").style.display =
@@ -556,23 +562,9 @@
                 }
             }
 
-            function populateVoiceSelect() {
-                const select = document.getElementById("voice-select");
-                select.innerHTML = "";
-                voices.forEach((voice) => {
-                    const opt = document.createElement("option");
-                    opt.value = voice;
-                    opt.textContent = voice;
-                    select.appendChild(opt);
-                });
-                const savedVoice = localStorage.getItem("veniceSelectedVoice") || "af_sky";
-                select.value = savedVoice;
-            }
-
             function toggleImageMode() {
                 if (isVoiceMode) {
                     isVoiceMode = false;
-                    document.getElementById("voice-select-container").style.display = "none";
                 }
                 isImageMode = !isImageMode;
                 updateToggleStyles();
@@ -583,7 +575,6 @@
                     isImageMode = false;
                 }
                 isVoiceMode = !isVoiceMode;
-                document.getElementById("voice-select-container").style.display = isVoiceMode ? "flex" : "none";
                 updateToggleStyles();
             }
 
@@ -993,14 +984,6 @@
                         sendMessage();
                     }
                 });
-
-            // Voice select change
-            document.addEventListener("DOMContentLoaded", function() {
-                populateVoiceSelect();
-                document.getElementById("voice-select").addEventListener("change", function(e) {
-                    localStorage.setItem("veniceSelectedVoice", e.target.value);
-                });
-            });
 
             // Init on load
             initApp();
