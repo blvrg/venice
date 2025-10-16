@@ -824,18 +824,16 @@
                                 const audioBlob = await speechResponse.blob();
                                 const audioUrl = URL.createObjectURL(audioBlob);
 
-                                const voiceLabel =
-                                    document.createElement("div");
-                                voiceLabel.innerHTML =
-                                    "<br><strong>Voice Clip:</strong>";
-                                voiceLabel.style.marginTop = "10px";
-                                messageDiv.appendChild(voiceLabel);
-
                                 const audioElement =
                                     document.createElement("audio");
                                 audioElement.controls = true;
                                 audioElement.src = audioUrl;
                                 messageDiv.appendChild(audioElement);
+
+                                const transcriptDetails = document.createElement("details");
+                                transcriptDetails.style.marginTop = "8px";
+                                transcriptDetails.innerHTML = `<summary>View transcript</summary><p>${aiReply}</p>`;
+                                messageDiv.appendChild(transcriptDetails);
                             } catch (error) {
                                 console.error("Error generating voice:", error);
                                 const errorDiv = document.createElement("div");
@@ -892,7 +890,7 @@
                     "ai-message",
                     "image-message",
                 );
-                messageDiv.innerHTML = `<strong>${characterName || "AI"}:</strong> Here is your generated image:<br><img src="data:image/webp;base64,${base64Image}" alt="Generated Image" />`;
+                messageDiv.innerHTML = `<img src="data:image/webp;base64,${base64Image}" alt="Generated Image" />`;
                 chatContainer.appendChild(messageDiv);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
                 return messageDiv;
