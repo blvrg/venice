@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Venice AI Multi-Character Chat</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            body {
+                font-family: "Poppins", sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                box-sizing: border-box;
+            }
+            #setup-overlay,
+            #character-selection-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+            #setup-form,
+            #character-form {
+                background: white;
+                padding: 30px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                max-width: 500px;
+                width: 90%;
+            }
+            #setup-form h2,
+            #character-form h2 {
+                margin-top: 0;
+                color: #667eea;
+                text-align: center;
+            }
+            #setup-form input,
+            #character-form select,
+            #character-form input {
+                width: 100%;
+                padding: 12px;
+                margin-bottom: 15px;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                font-family: "Poppins", sans-serif;
+                box-sizing: border-box;
+            }
+            #setup-form input:focus,
+            #character-form select:focus,
+            #character-form input:focus {
+                outline: none;
+                border-color: #a8edea;
+            }
+            #setup-form button,
+            #character-form button {
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 16px;
+                font-family: "Poppins", sans-serif;
+            }
+            #setup-form button:hover,
+            #character-form button:hover {
+                transform: translateY(-2px);
+            }
+            #setup-form button:disabled,
+            #character-form button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            #chat-container {
+                background-color: white;
+                border-radius: 20px;
+                padding: 20px;
+                flex: 1;
+                overflow-y: auto;
+                border: none;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                position: relative;
+                display: flex;
+                flex-direction: column;
+            }
+            #chat-header {
+                display: none;
+                padding: 10px 20px 0;
+                justify-content: space-between;
+                align-items: center;
+                position: relative;
+            }
+            #characters-info {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+                flex: 1;
+            }
+            .character-info {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+                border-radius: 20px;
+            }
+            .character-info img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 2px solid white;
+            }
+            .character-info span {
+                font-weight: 500;
+                color: #667eea;
+            }
+            #menu-btn {
+                padding: 10px;
+                font-size: 20px;
+                border-radius: 4px;
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-family: "Poppins", sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                transition: transform 0.2s;
+            }
+            #menu-btn:hover {
+                transform: scale(1.05);
+            }
+            #menu-dropdown {
+                display: none;
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                padding: 0;
+                z-index: 1001;
+                min-width: 180px;
+                border: 1px solid #e0e0e0;
+            }
+            #menu-dropdown button {
+                display: block;
+                width: 100%;
+                padding: 12px 20px;
+                border: none;
+                background: none;
+                text-align: left;
+                cursor: pointer;
+                font-family: "Poppins", sans-serif;
+                font-size: 14px;
+                transition: background 0.2s, color 0.2s;
+            }
+            #menu-dropdown button:hover {
+                background: rgba(102, 126, 234, 0.08);
+            }
+            #clear-menu {
+                color: #ff4757;
+                border-top: 1px solid #e0e0e0;
+            }
+            #clear-menu:hover {
+                background: rgba(255, 71, 87, 0.08);
+            }
+            #change-char-menu {
+                color: #667eea;
+            }
+            #chat-container::-webkit-scrollbar {
+                width: 6px;
+            }
+            #chat-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+            #chat-container::-webkit-scrollbar-thumb {
+                background: #c3cfe2;
+                border-radius: 10px;
+            }
+            #chat-container::-webkit-scrollbar-thumb:hover {
+                background: #a8b8d8;
+            }
+            .message {
+                margin-bottom: 15px;
+                padding: 12px 16px;
+                border-radius: 18px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                position: relative;
+                word-wrap: break-word;
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .message img.avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 2px solid white;
+                flex-shrink: 0;
+            }
+            .message-content {
+                flex: 1;
+            }
+            .character-1-message {
+                background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+                text-align: left;
+            }
+            .character-2-message {
+                background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+                text-align: left;
+            }
+            .user-message {
+                background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+                text-align: left;
+            }
+            #control-container {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                background: white;
+                padding: 15px;
+                border-radius: 20px;
+                box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+                flex-shrink: 0;
+                margin-top: 10px;
+            }
+            #initial-prompt {
+                flex: 1;
+                padding: 12px 16px;
+                border: 2px solid #e0e0e0;
+                border-radius: 25px;
+                font-family: "Poppins", sans-font;
+                font-size: 14px;
+                transition: border-color 0.3s;
+                min-width: 0;
+            }
+            #initial-prompt:focus {
+                outline: none;
+                border-color: #a8edea;
+            }
+            #start-conversation-btn,
+            #stop-conversation-btn {
+                padding: 12px 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-size: 16px;
+                border-radius: 25px;
+                transition: transform 0.2s, box-shadow 0.2s;
+                flex-shrink: 0;
+            }
+            #start-conversation-btn:hover,
+            #stop-conversation-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+            #start-conversation-btn:disabled,
+            #stop-conversation-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            #stop-conversation-btn {
+                background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+            }
+            #exchange-count {
+                padding: 8px 16px;
+                background: #f1f1f1;
+                border-radius: 20px;
+                font-size: 14px;
+                color: #667eea;
+                font-weight: 500;
+            }
+            strong {
+                color: #4a5568;
+            }
+            #indicator {
+                background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+                text-align: left;
+                animation: pulse 1.5s ease-in-out infinite alternate;
+            }
+            @keyframes pulse {
+                from {
+                    opacity: 0.7;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+            .character-select-group {
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
+            .character-select-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 500;
+                color: #667eea;
+            }
+            @media (max-width: 600px) {
+                body {
+                    margin: 0;
+                    padding: 0;
+                    max-width: none;
+                }
+                #chat-container {
+                    border-radius: 0;
+                    box-shadow: none;
+                    padding: 10px;
+                }
+                #control-container {
+                    border-radius: 0;
+                    box-shadow: none;
+                    padding: 10px;
+                    gap: 5px;
+                    flex-wrap: wrap;
+                }
+                #characters-info {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .message {
+                    margin-left: 5%;
+                    margin-right: 5%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="setup-overlay">
+            <form id="setup-form">
+                <h2>Setup Multi-Character Chat</h2>
+                <input
+                    type="password"
+                    id="api-key-input"
+                    placeholder="Enter your API Key"
+                    required
+                />
+                <button type="submit" id="setup-submit">Continue</button>
+            </form>
+        </div>
+
+        <div id="character-selection-overlay" style="display: none;">
+            <form id="character-form">
+                <h2>Select Two Characters</h2>
+                <div class="character-select-group">
+                    <label for="character-1-select">Character 1:</label>
+                    <select id="character-1-select" required>
+                        <option value="">Select first character</option>
+                    </select>
+                </div>
+                <div class="character-select-group">
+                    <label for="character-2-select">Character 2:</label>
+                    <select id="character-2-select" required>
+                        <option value="">Select second character</option>
+                    </select>
+                </div>
+                <div class="character-select-group">
+                    <label for="exchange-limit">Number of exchanges (1-50):</label>
+                    <input type="number" id="exchange-limit" min="1" max="50" value="10" required />
+                </div>
+                <button type="submit">Start Multi-Chat</button>
+            </form>
+        </div>
+
+        <div id="chat-container" style="display: none">
+            <div id="chat-header">
+                <div id="characters-info"></div>
+                <button id="menu-btn" onclick="toggleMenu()">≡</button>
+                <div id="menu-dropdown">
+                    <button id="change-char-menu" onclick="changeCharacters()">Change Characters</button>
+                    <button id="clear-menu" onclick="clearConversation()">Clear Conversation</button>
+                </div>
+            </div>
+            <div id="messages"></div>
+        </div>
+
+        <div id="control-container" style="display: none">
+            <input
+                type="text"
+                id="initial-prompt"
+                placeholder="Enter initial prompt for Character 1..."
+            />
+            <span id="exchange-count">0 exchanges</span>
+            <button id="start-conversation-btn" onclick="startConversation()">Start</button>
+            <button id="stop-conversation-btn" onclick="stopConversation()" style="display: none;">Stop</button>
+        </div>
+
+        <script>
+            let apiKey = localStorage.getItem("veniceMultiApiKey") || "";
+            let character1 = null;
+            let character2 = null;
+            let conversationHistory = [];
+            let isRunning = false;
+            let charactersList = [];
+            let currentExchangeCount = 0;
+            let maxExchanges = 10;
+
+            function getDisplayUrl(url) {
+                if (url && url.startsWith('https://outerface.venice.ai/api/characters/')) {
+                    const encoded = encodeURIComponent(url);
+                    return `https://venice.ai/_next/image?url=${encoded}&w=640&q=75`;
+                }
+                return url;
+            }
+
+            function toggleMenu() {
+                const dropdown = document.getElementById("menu-dropdown");
+                dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener("click", function(event) {
+                const dropdown = document.getElementById("menu-dropdown");
+                const menuBtn = document.getElementById("menu-btn");
+                if (!menuBtn.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.style.display = "none";
+                }
+            });
+
+            async function initApp() {
+                if (apiKey && apiKey !== "YOUR_API_KEY_HERE") {
+                    if (character1 && character2) {
+                        showChat();
+                    } else {
+                        await showCharacterSelection();
+                    }
+                } else {
+                    showSetup();
+                }
+            }
+
+            function showSetup() {
+                document.getElementById("setup-overlay").style.display = "flex";
+                document
+                    .getElementById("setup-form")
+                    .addEventListener("submit", handleSetup);
+                document.getElementById("api-key-input").value = apiKey;
+            }
+
+            async function handleSetup(e) {
+                e.preventDefault();
+                const newApiKey = document
+                    .getElementById("api-key-input")
+                    .value.trim();
+
+                if (!newApiKey) {
+                    alert("API Key is required!");
+                    return;
+                }
+
+                apiKey = newApiKey;
+                localStorage.setItem("veniceMultiApiKey", apiKey);
+
+                const submitBtn = document.getElementById("setup-submit");
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Loading...";
+
+                try {
+                    await showCharacterSelection();
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Continue";
+                }
+            }
+
+            async function fetchCharacters() {
+                try {
+                    const response = await fetch(
+                        "https://api.venice.ai/api/v1/characters",
+                        {
+                            headers: {
+                                Authorization: `Bearer ${apiKey}`,
+                            },
+                        },
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(response.statusText);
+                    }
+
+                    const data = await response.json();
+                    return data.data || [];
+                } catch (error) {
+                    console.error("Error fetching characters:", error);
+                    return [];
+                }
+            }
+
+            function populateCharacterSelects(chars) {
+                const select1 = document.getElementById("character-1-select");
+                const select2 = document.getElementById("character-2-select");
+
+                select1.innerHTML = '<option value="">Select first character</option>';
+                select2.innerHTML = '<option value="">Select second character</option>';
+
+                chars.forEach((char) => {
+                    const opt1 = document.createElement("option");
+                    opt1.value = char.slug;
+                    opt1.textContent = char.name;
+                    select1.appendChild(opt1);
+
+                    const opt2 = document.createElement("option");
+                    opt2.value = char.slug;
+                    opt2.textContent = char.name;
+                    select2.appendChild(opt2);
+                });
+            }
+
+            async function showCharacterSelection() {
+                charactersList = await fetchCharacters();
+                populateCharacterSelects(charactersList);
+                document.getElementById("character-selection-overlay").style.display = "flex";
+                document.getElementById("character-form").onsubmit = handleCharacterSelect;
+            }
+
+            function handleCharacterSelect(e) {
+                e.preventDefault();
+                const slug1 = document.getElementById("character-1-select").value;
+                const slug2 = document.getElementById("character-2-select").value;
+                const exchangeLimit = parseInt(document.getElementById("exchange-limit").value);
+
+                if (!slug1 || !slug2) {
+                    alert("Please select both characters!");
+                    return;
+                }
+
+                if (slug1 === slug2) {
+                    alert("Please select two different characters!");
+                    return;
+                }
+
+                if (exchangeLimit < 1 || exchangeLimit > 50) {
+                    alert("Exchange limit must be between 1 and 50!");
+                    return;
+                }
+
+                character1 = charactersList.find((c) => c.slug === slug1);
+                character2 = charactersList.find((c) => c.slug === slug2);
+                maxExchanges = exchangeLimit;
+
+                document.getElementById("character-selection-overlay").style.display = "none";
+                showChat();
+            }
+
+            function showChat() {
+                document.getElementById("setup-overlay").style.display = "none";
+                document.getElementById("character-selection-overlay").style.display = "none";
+                document.getElementById("chat-container").style.display = "flex";
+                document.getElementById("control-container").style.display = "flex";
+                document.getElementById("chat-header").style.display = "flex";
+
+                // Show character info
+                const charactersInfo = document.getElementById("characters-info");
+                charactersInfo.innerHTML = `
+                    <div class="character-info">
+                        <img src="${getDisplayUrl(character1.photoUrl)}" alt="${character1.name}" />
+                        <span>${character1.name}</span>
+                    </div>
+                    <div class="character-info">
+                        <img src="${getDisplayUrl(character2.photoUrl)}" alt="${character2.name}" />
+                        <span>${character2.name}</span>
+                    </div>
+                `;
+
+                renderConversation();
+                updateExchangeCount();
+            }
+
+            function renderConversation() {
+                const messagesDiv = document.getElementById("messages");
+                messagesDiv.innerHTML = "";
+                conversationHistory.forEach((msg) => {
+                    addMessage(msg.character, msg.content, msg.photoUrl);
+                });
+            }
+
+            function clearConversation() {
+                if (isRunning) {
+                    alert("Please stop the conversation first!");
+                    return;
+                }
+                const shouldClear = confirm("Clear the conversation history?");
+                if (shouldClear) {
+                    conversationHistory = [];
+                    currentExchangeCount = 0;
+                    updateExchangeCount();
+                    document.getElementById("messages").innerHTML = "";
+                }
+                toggleMenu();
+            }
+
+            function changeCharacters() {
+                if (isRunning) {
+                    alert("Please stop the conversation first!");
+                    return;
+                }
+                toggleMenu();
+                if (conversationHistory.length > 0) {
+                    const proceed = confirm("Changing characters will clear the current conversation. Proceed?");
+                    if (!proceed) {
+                        return;
+                    }
+                    conversationHistory = [];
+                    currentExchangeCount = 0;
+                    document.getElementById("messages").innerHTML = "";
+                }
+                showCharacterSelection();
+            }
+
+            function updateExchangeCount() {
+                document.getElementById("exchange-count").textContent =
+                    `${currentExchangeCount}/${maxExchanges} exchanges`;
+            }
+
+            function showIndicator() {
+                const indicator = document.createElement("div");
+                indicator.id = "indicator";
+                indicator.classList.add("message");
+                indicator.innerHTML = `<div class="message-content"><strong>Thinking...</strong></div>`;
+                const messagesDiv = document.getElementById("messages");
+                messagesDiv.appendChild(indicator);
+                const chatContainer = document.getElementById("chat-container");
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            function removeIndicator() {
+                const ind = document.getElementById("indicator");
+                if (ind) ind.remove();
+            }
+
+            async function callCharacter(character, message, conversationContext = []) {
+                try {
+                    const veniceParams = {
+                        enable_web_search: "auto",
+                        include_venice_system_prompt: true,
+                        character_slug: character.slug,
+                    };
+
+                    // Build messages array with context
+                    let messages = [...conversationContext];
+                    messages.push({ role: "user", content: message });
+
+                    const requestBody = {
+                        model: "venice-uncensored",
+                        messages: messages,
+                        venice_parameters: veniceParams,
+                        frequency_penalty: 0,
+                        presence_penalty: 0,
+                        max_tokens: 1000,
+                        temperature: 1,
+                        top_p: 0.1,
+                        stream: false,
+                    };
+
+                    const response = await fetch(
+                        "https://api.venice.ai/api/v1/chat/completions",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${apiKey}`,
+                            },
+                            body: JSON.stringify(requestBody),
+                        },
+                    );
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || "API request failed");
+                    }
+
+                    const data = await response.json();
+                    return data.choices[0].message.content;
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            async function startConversation() {
+                if (isRunning) return;
+
+                const initialPrompt = document.getElementById("initial-prompt").value.trim();
+                if (!initialPrompt) {
+                    alert("Please enter an initial prompt!");
+                    return;
+                }
+
+                isRunning = true;
+                document.getElementById("start-conversation-btn").style.display = "none";
+                document.getElementById("stop-conversation-btn").style.display = "block";
+                document.getElementById("initial-prompt").disabled = true;
+
+                try {
+                    let currentMessage = initialPrompt;
+                    let character1Context = [];
+                    let character2Context = [];
+
+                    // Add initial prompt to conversation
+                    addMessage("user", initialPrompt);
+                    conversationHistory.push({
+                        character: "user",
+                        content: initialPrompt,
+                        photoUrl: null,
+                    });
+
+                    while (isRunning && currentExchangeCount < maxExchanges) {
+                        // Character 1 responds
+                        showIndicator();
+                        try {
+                            const response1 = await callCharacter(character1, currentMessage, character1Context);
+                            removeIndicator();
+
+                            if (!isRunning) break;
+
+                            addMessage(character1.name, response1, character1.photoUrl);
+                            conversationHistory.push({
+                                character: character1.name,
+                                content: response1,
+                                photoUrl: character1.photoUrl,
+                            });
+
+                            // Update context for character 1
+                            character1Context.push({ role: "user", content: currentMessage });
+                            character1Context.push({ role: "assistant", content: response1 });
+                            // Keep only last 10 messages in context
+                            if (character1Context.length > 20) {
+                                character1Context = character1Context.slice(-20);
+                            }
+
+                            // Small delay for readability
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+
+                            if (!isRunning) break;
+
+                            // Character 2 responds to Character 1's message
+                            showIndicator();
+                            const response2 = await callCharacter(character2, response1, character2Context);
+                            removeIndicator();
+
+                            if (!isRunning) break;
+
+                            addMessage(character2.name, response2, character2.photoUrl);
+                            conversationHistory.push({
+                                character: character2.name,
+                                content: response2,
+                                photoUrl: character2.photoUrl,
+                            });
+
+                            // Update context for character 2
+                            character2Context.push({ role: "user", content: response1 });
+                            character2Context.push({ role: "assistant", content: response2 });
+                            // Keep only last 10 messages in context
+                            if (character2Context.length > 20) {
+                                character2Context = character2Context.slice(-20);
+                            }
+
+                            // Set up next iteration - Character 2's response becomes input for Character 1
+                            currentMessage = response2;
+                            currentExchangeCount++;
+                            updateExchangeCount();
+
+                            // Small delay before next exchange
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } catch (error) {
+                            removeIndicator();
+                            addMessage("system", `Error: ${error.message}`);
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                } finally {
+                    stopConversation();
+                }
+            }
+
+            function stopConversation() {
+                isRunning = false;
+                removeIndicator();
+                document.getElementById("start-conversation-btn").style.display = "block";
+                document.getElementById("stop-conversation-btn").style.display = "none";
+                document.getElementById("initial-prompt").disabled = false;
+            }
+
+            function addMessage(characterName, text, photoUrl = null) {
+                const messagesDiv = document.getElementById("messages");
+                const messageDiv = document.createElement("div");
+                messageDiv.classList.add("message");
+
+                let messageClass = "user-message";
+                if (characterName === character1?.name) {
+                    messageClass = "character-1-message";
+                } else if (characterName === character2?.name) {
+                    messageClass = "character-2-message";
+                }
+                messageDiv.classList.add(messageClass);
+
+                let avatarHTML = "";
+                if (photoUrl) {
+                    avatarHTML = `<img class="avatar" src="${getDisplayUrl(photoUrl)}" alt="${characterName}" />`;
+                }
+
+                messageDiv.innerHTML = `
+                    ${avatarHTML}
+                    <div class="message-content">
+                        <strong>${characterName}:</strong> ${text}
+                    </div>
+                `;
+
+                messagesDiv.appendChild(messageDiv);
+                const chatContainer = document.getElementById("chat-container");
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return messageDiv;
+            }
+
+            // Allow Enter key to start conversation
+            document
+                .getElementById("initial-prompt")
+                .addEventListener("keypress", function (e) {
+                    if (e.key === "Enter" && !isRunning) {
+                        startConversation();
+                    }
+                });
+
+            // Init on load
+            initApp();
+        </script>
+    </body>
+</html>
