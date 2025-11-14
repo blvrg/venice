@@ -264,8 +264,10 @@
                 background: rgba(102, 126, 234, 0.05);
                 border-bottom: 1px solid rgba(102, 126, 234, 0.1);
                 backdrop-filter: blur(10px);
+                flex-shrink: 0;
             }
-            #menu-btn {
+            #menu-btn,
+            #mobile-menu-btn {
                 padding: 12px 20px;
                 font-size: 20px;
                 border-radius: 12px;
@@ -277,9 +279,18 @@
                 transition: all 0.3s ease;
                 box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
             }
-            #menu-btn:hover {
+            #menu-btn:hover,
+            #mobile-menu-btn:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            }
+            #mobile-menu-btn {
+                width: 44px;
+                height: 44px;
+                padding: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             #menu-dropdown {
                 display: none;
@@ -501,6 +512,8 @@
                 background: rgba(102, 126, 234, 0.05);
                 border-bottom: 1px solid rgba(102, 126, 234, 0.1);
                 backdrop-filter: blur(10px);
+                flex-shrink: 0;
+                position: relative;
             }
             #character-preview img {
                 width: 80px;
@@ -548,7 +561,7 @@
                 }
 
                 #chat-header {
-                    padding: 12px 16px;
+                    display: none !important;
                 }
 
                 #input-container {
@@ -571,16 +584,41 @@
 
                 #character-preview {
                     padding: 16px;
-                    position: static;
+                    display: flex !important;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    text-align: left;
+                    gap: 12px;
+                }
+
+                #character-preview-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    flex: 1;
                 }
 
                 #character-preview img {
-                    width: 60px;
-                    height: 60px;
+                    width: 50px;
+                    height: 50px;
+                    margin: 0;
                 }
 
                 #preview-name {
                     font-size: 16px;
+                    margin: 0;
+                    text-align: left;
+                }
+
+                #mobile-menu-btn {
+                    display: flex !important;
+                }
+
+                #menu-dropdown {
+                    position: fixed;
+                    top: auto;
+                    right: 16px;
                     margin-top: 8px;
                 }
 
@@ -687,8 +725,11 @@
                 </div>
             </div>
             <div id="character-preview" style="display: none">
-                <img id="preview-img" src="" alt="Character Photo" />
-                <p id="preview-name"></p>
+                <div id="character-preview-content">
+                    <img id="preview-img" src="" alt="Character Photo" />
+                    <p id="preview-name"></p>
+                </div>
+                <button id="mobile-menu-btn" onclick="toggleMenu()" style="display: none;">≡</button>
             </div>
             <div id="messages"></div>
         </div>
@@ -830,6 +871,11 @@
                 const grid = document.getElementById("character-grid");
                 grid.innerHTML = "";
 
+                console.log("Populating grid with", chars.length, "characters");
+                if (chars.length > 0) {
+                    console.log("Sample character:", chars[0]);
+                }
+
                 if (chars.length === 0) {
                     grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #999;">No characters found</p>';
                     return;
@@ -853,19 +899,25 @@
 
                     const model = document.createElement("div");
                     model.classList.add("character-card-model");
-                    model.textContent = char.model || "Default";
+                    // Try multiple field names for model
+                    const modelName = char.llmModel || char.model || char.defaultModel || "Default";
+                    model.textContent = modelName;
 
                     const tags = document.createElement("div");
                     tags.classList.add("character-card-tags");
 
-                    if (char.webSearchEnabled) {
+                    // Check for web search capability
+                    const hasWebSearch = char.webSearchEnabled || char.webSearch || char.enableWebSearch;
+                    if (hasWebSearch) {
                         const tag = document.createElement("span");
                         tag.classList.add("character-card-tag");
                         tag.textContent = "Web";
                         tags.appendChild(tag);
                     }
 
-                    if (char.mature) {
+                    // Check for mature/NSFW content
+                    const isMature = char.mature || char.isNsfw || char.nsfw || char.is18Plus;
+                    if (isMature) {
                         const tag = document.createElement("span");
                         tag.classList.add("character-card-tag");
                         tag.textContent = "18+";
@@ -882,7 +934,13 @@
 
             function populateModelFilter(chars) {
                 const modelFilter = document.getElementById("model-filter");
-                const models = new Set(chars.map(c => c.model).filter(Boolean));
+                // Extract models - try multiple field names
+                const models = new Set(chars.map(c =>
+                    c.llmModel || c.model || c.defaultModel
+                ).filter(Boolean));
+
+                console.log("Available models:", Array.from(models));
+
                 modelFilter.innerHTML = '<option value="">All Models</option>';
                 models.forEach(model => {
                     const opt = document.createElement("option");
@@ -902,20 +960,24 @@
                     // Search by name
                     const matchesSearch = char.name.toLowerCase().includes(searchTerm);
 
-                    // Filter by model
-                    const matchesModel = !modelFilter || char.model === modelFilter;
+                    // Filter by model - try multiple field names
+                    const charModel = char.llmModel || char.model || char.defaultModel;
+                    const matchesModel = !modelFilter || charModel === modelFilter;
 
-                    // Filter by web search
+                    // Filter by web search - try multiple field names
+                    const hasWebSearch = char.webSearchEnabled || char.webSearch || char.enableWebSearch;
                     const matchesWebSearch = !webSearchFilter ||
-                        (webSearchFilter === "true" && char.webSearchEnabled) ||
-                        (webSearchFilter === "false" && !char.webSearchEnabled);
+                        (webSearchFilter === "true" && hasWebSearch) ||
+                        (webSearchFilter === "false" && !hasWebSearch);
 
-                    // Filter by mature content
-                    const matchesMature = !matureFilter || char.mature;
+                    // Filter by mature content - ONLY show mature when checked
+                    const isMature = char.mature || char.isNsfw || char.nsfw || char.is18Plus;
+                    const matchesMature = matureFilter ? isMature : true;
 
                     return matchesSearch && matchesModel && matchesWebSearch && matchesMature;
                 });
 
+                console.log("Filtered to", filteredCharacters.length, "characters");
                 populateCharacterGrid(filteredCharacters);
             }
 
@@ -1010,15 +1072,23 @@
                     "flex";
                 document.getElementById("chat-header").style.display = "flex";
 
-                // Show character preview if details provided
+                // Show character preview with mobile menu
+                const previewDiv = document.getElementById("character-preview");
+                const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+
                 if (characterName && characterPhotoUrl) {
-                    const previewDiv =
-                        document.getElementById("character-preview");
                     const previewImg = document.getElementById("preview-img");
                     const previewName = document.getElementById("preview-name");
                     previewImg.src = getDisplayUrl(characterPhotoUrl);
                     previewName.textContent = characterName;
                     previewDiv.style.display = "block";
+                    mobileMenuBtn.style.display = "none"; // Will be shown via CSS on mobile
+                } else {
+                    // Always show preview on mobile even without character for menu access
+                    previewDiv.style.display = "block";
+                    const previewContent = document.getElementById("character-preview-content");
+                    previewContent.style.display = "none";
+                    mobileMenuBtn.style.display = "none"; // Will be shown via CSS on mobile
                 }
 
                 renderConversation();
