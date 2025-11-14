@@ -578,6 +578,7 @@
 
             async function fetchCharacters() {
                 try {
+                    console.log("Fetching characters with API key:", apiKey ? "Present" : "Missing");
                     const response = await fetch(
                         "https://api.venice.ai/api/v1/characters",
                         {
@@ -587,14 +588,30 @@
                         },
                     );
 
+                    console.log("API Response status:", response.status, response.statusText);
+
                     if (!response.ok) {
-                        throw new Error(response.statusText);
+                        const errorText = await response.text();
+                        console.error("API Error response:", errorText);
+                        throw new Error(`${response.status}: ${response.statusText}`);
                     }
 
                     const data = await response.json();
-                    return data.data || [];
+                    console.log("API Response structure:", Object.keys(data));
+                    console.log("Full API Response:", data);
+
+                    // Handle both { data: [...] } and direct array responses
+                    const characters = Array.isArray(data) ? data : (data.data || data.characters || []);
+                    console.log("Extracted characters count:", characters.length);
+
+                    if (characters.length > 0) {
+                        console.log("First character sample:", JSON.stringify(characters[0], null, 2));
+                    }
+
+                    return characters;
                 } catch (error) {
                     console.error("Error fetching characters:", error);
+                    alert(`Failed to load characters: ${error.message}\n\nPlease check:\n1. Your API key is valid\n2. You have an internet connection\n3. The console for more details`);
                     return [];
                 }
             }
@@ -620,8 +637,19 @@
             }
 
             async function showCharacterSelection() {
+                console.log("=== Starting Character Selection ===");
+                console.log("Current API key:", apiKey ? `${apiKey.substring(0, 10)}...` : "MISSING");
+
                 charactersList = await fetchCharacters();
+                console.log("Characters loaded:", charactersList.length);
+
+                if (charactersList.length === 0) {
+                    alert("No characters found. Check console for errors.");
+                    return;
+                }
+
                 populateCharacterSelects(charactersList);
+                console.log("=== Character Selection Ready ===");
                 document.getElementById("character-selection-overlay").style.display = "flex";
                 document.getElementById("character-form").onsubmit = handleCharacterSelect;
             }
