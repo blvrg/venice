@@ -783,7 +783,8 @@
             document.addEventListener("click", function(event) {
                 const dropdown = document.getElementById("menu-dropdown");
                 const menuBtn = document.getElementById("menu-btn");
-                if (!menuBtn.contains(event.target) && !dropdown.contains(event.target)) {
+                const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+                if (!menuBtn.contains(event.target) && !mobileMenuBtn.contains(event.target) && !dropdown.contains(event.target)) {
                     dropdown.style.display = "none";
                 }
             });
