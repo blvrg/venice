@@ -844,6 +844,7 @@
 
             async function fetchCharacters() {
                 try {
+                    console.log("Fetching characters with API key:", apiKey ? "Present" : "Missing");
                     const response = await fetch(
                         "https://api.venice.ai/api/v1/characters",
                         {
@@ -853,14 +854,30 @@
                         },
                     );
 
+                    console.log("API Response status:", response.status, response.statusText);
+
                     if (!response.ok) {
-                        throw new Error(response.statusText);
+                        const errorText = await response.text();
+                        console.error("API Error response:", errorText);
+                        throw new Error(`${response.status}: ${response.statusText}`);
                     }
 
                     const data = await response.json();
-                    return data.data || [];
+                    console.log("API Response structure:", Object.keys(data));
+                    console.log("Full API Response:", data);
+
+                    // Handle both { data: [...] } and direct array responses
+                    const characters = Array.isArray(data) ? data : (data.data || data.characters || []);
+                    console.log("Extracted characters count:", characters.length);
+
+                    if (characters.length > 0) {
+                        console.log("First character sample:", JSON.stringify(characters[0], null, 2));
+                    }
+
+                    return characters;
                 } catch (error) {
                     console.error("Error fetching characters:", error);
+                    alert(`Failed to load characters: ${error.message}\n\nPlease check:\n1. Your API key is valid\n2. You have an internet connection\n3. The console for more details`);
                     return [];
                 }
             }
@@ -951,30 +968,54 @@
             }
 
             function filterCharacters() {
+                if (!charactersList || !Array.isArray(charactersList)) {
+                    console.error("charactersList is not initialized properly:", charactersList);
+                    return;
+                }
+
                 const searchTerm = document.getElementById("character-search").value.toLowerCase();
                 const modelFilter = document.getElementById("model-filter").value;
                 const webSearchFilter = document.getElementById("web-search-filter").value;
                 const matureFilter = document.getElementById("mature-filter").checked;
 
+                console.log("Filter settings:", { searchTerm, modelFilter, webSearchFilter, matureFilter });
+                console.log("Total characters to filter:", charactersList.length);
+
                 filteredCharacters = charactersList.filter(char => {
                     // Search by name
-                    const matchesSearch = char.name.toLowerCase().includes(searchTerm);
+                    const matchesSearch = !searchTerm || char.name.toLowerCase().includes(searchTerm);
 
                     // Filter by model - try multiple field names
                     const charModel = char.llmModel || char.model || char.defaultModel;
                     const matchesModel = !modelFilter || charModel === modelFilter;
 
                     // Filter by web search - try multiple field names
-                    const hasWebSearch = char.webSearchEnabled || char.webSearch || char.enableWebSearch;
+                    const hasWebSearch = !!(char.webSearchEnabled || char.webSearch || char.enableWebSearch);
                     const matchesWebSearch = !webSearchFilter ||
                         (webSearchFilter === "true" && hasWebSearch) ||
                         (webSearchFilter === "false" && !hasWebSearch);
 
-                    // Filter by mature content - ONLY show mature when checked
-                    const isMature = char.mature || char.isNsfw || char.nsfw || char.is18Plus;
-                    const matchesMature = matureFilter ? isMature : true;
+                    // Filter by mature content - when checked, ONLY show mature; when unchecked, show all
+                    const isMature = !!(char.mature || char.isNsfw || char.nsfw || char.is18Plus);
+                    const matchesMature = !matureFilter || isMature;
 
-                    return matchesSearch && matchesModel && matchesWebSearch && matchesMature;
+                    const matches = matchesSearch && matchesModel && matchesWebSearch && matchesMature;
+
+                    // Debug first few characters
+                    if (filteredCharacters.length < 3) {
+                        console.log(`Character "${char.name}":`, {
+                            matchesSearch,
+                            matchesModel,
+                            matchesWebSearch,
+                            matchesMature,
+                            matches,
+                            charModel,
+                            hasWebSearch,
+                            isMature
+                        });
+                    }
+
+                    return matches;
                 });
 
                 console.log("Filtered to", filteredCharacters.length, "characters");
@@ -1016,18 +1057,32 @@
             }
 
             async function showCharacterSelection() {
+                console.log("=== Starting Character Selection ===");
+                console.log("Current API key:", apiKey ? `${apiKey.substring(0, 10)}...` : "MISSING");
+
+                document.getElementById("character-selection-overlay").style.display = "flex";
+                const grid = document.getElementById("character-grid");
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #667eea;">Loading characters...</p>';
+
                 charactersList = await fetchCharacters();
+                console.log("Characters loaded:", charactersList.length);
+
+                if (charactersList.length === 0) {
+                    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #f56565;">No characters found. Check console for errors.</p>';
+                    return;
+                }
+
                 filteredCharacters = charactersList;
                 populateCharacterGrid(charactersList);
                 populateModelFilter(charactersList);
-
-                document.getElementById("character-selection-overlay").style.display = "flex";
 
                 // Setup event listeners for search and filters
                 document.getElementById("character-search").oninput = filterCharacters;
                 document.getElementById("model-filter").onchange = filterCharacters;
                 document.getElementById("web-search-filter").onchange = filterCharacters;
                 document.getElementById("mature-filter").onchange = filterCharacters;
+
+                console.log("=== Character Selection Ready ===");
             }
 
             function populateVoiceSelect() {
