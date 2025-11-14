@@ -257,7 +257,7 @@
                 margin: 0;
             }
             #chat-header {
-                display: none;
+                display: flex;
                 padding: 20px 30px;
                 justify-content: flex-end;
                 position: relative;
@@ -265,6 +265,7 @@
                 border-bottom: 1px solid rgba(102, 126, 234, 0.1);
                 backdrop-filter: blur(10px);
                 flex-shrink: 0;
+                z-index: 10;
             }
             #menu-btn,
             #mobile-menu-btn {
@@ -302,7 +303,7 @@
                 border-radius: 12px;
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
                 padding: 8px 0;
-                z-index: 1001;
+                z-index: 9999;
                 min-width: 200px;
                 border: 1px solid rgba(102, 126, 234, 0.1);
             }
@@ -507,6 +508,7 @@
                 transform: translateY(-2px);
             }
             #character-preview {
+                display: none;
                 text-align: center;
                 padding: 24px 30px;
                 background: rgba(102, 126, 234, 0.05);
@@ -633,11 +635,14 @@
                     padding: 20px;
                     max-width: calc(100% - 20px);
                     max-height: calc(100vh - 20px);
+                    overflow-y: auto;
                 }
 
                 #character-grid {
                     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
                     gap: 12px;
+                    overflow-y: visible;
+                    flex: none;
                 }
 
                 .character-card {
@@ -1161,14 +1166,14 @@
                     const previewName = document.getElementById("preview-name");
                     previewImg.src = getDisplayUrl(characterPhotoUrl);
                     previewName.textContent = characterName;
-                    previewDiv.style.display = "block";
-                    mobileMenuBtn.style.display = "none"; // Will be shown via CSS on mobile
+                    // Don't set display - let CSS handle it (mobile shows via media query)
                 } else {
-                    // Always show preview on mobile even without character for menu access
-                    previewDiv.style.display = "block";
+                    // On mobile, preview still shows for menu access
                     const previewContent = document.getElementById("character-preview-content");
-                    previewContent.style.display = "none";
-                    mobileMenuBtn.style.display = "none"; // Will be shown via CSS on mobile
+                    if (previewContent) {
+                        previewContent.style.display = "none";
+                    }
+                    // Don't set display on preview - let CSS handle it
                 }
 
                 renderConversation();
