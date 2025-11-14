@@ -295,10 +295,9 @@
             }
             #menu-dropdown {
                 display: none;
-                position: absolute;
-                top: 100%;
-                right: 0;
-                margin-top: 10px;
+                position: fixed;
+                top: 80px;
+                right: 30px;
                 background: white;
                 border-radius: 12px;
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
@@ -618,10 +617,8 @@
                 }
 
                 #menu-dropdown {
-                    position: fixed;
-                    top: auto;
+                    top: 70px;
                     right: 16px;
-                    margin-top: 8px;
                 }
 
                 #setup-form,
@@ -723,11 +720,11 @@
         <div id="chat-container" style="display: none">
             <div id="chat-header">
                 <button id="menu-btn" onclick="toggleMenu()">≡</button>
-                <div id="menu-dropdown">
-                    <button id="change-char-menu" onclick="changeCharacter()">Change Character</button>
-                    <button id="change-voice-menu" onclick="changeVoice()">Change Voice</button>
-                    <button id="clear-menu" onclick="clearConversation()">Clear Conversation</button>
-                </div>
+            </div>
+            <div id="menu-dropdown">
+                <button id="change-char-menu" onclick="changeCharacter()">Change Character</button>
+                <button id="change-voice-menu" onclick="changeVoice()">Change Voice</button>
+                <button id="clear-menu" onclick="clearConversation()">Clear Conversation</button>
             </div>
             <div id="character-preview">
                 <div id="character-preview-content">
