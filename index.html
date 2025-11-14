@@ -633,11 +633,14 @@
                     padding: 20px;
                     max-width: calc(100% - 20px);
                     max-height: calc(100vh - 20px);
+                    overflow-y: auto;
                 }
 
                 #character-grid {
                     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
                     gap: 12px;
+                    overflow-y: visible;
+                    flex: none;
                 }
 
                 .character-card {
@@ -1162,13 +1165,13 @@
                     previewImg.src = getDisplayUrl(characterPhotoUrl);
                     previewName.textContent = characterName;
                     previewDiv.style.display = "block";
-                    mobileMenuBtn.style.display = "none"; // Will be shown via CSS on mobile
+                    // Don't set display on mobile menu - let CSS handle it
                 } else {
                     // Always show preview on mobile even without character for menu access
                     previewDiv.style.display = "block";
                     const previewContent = document.getElementById("character-preview-content");
                     previewContent.style.display = "none";
-                    mobileMenuBtn.style.display = "none"; // Will be shown via CSS on mobile
+                    // Don't set display on mobile menu - let CSS handle it
                 }
 
                 renderConversation();
