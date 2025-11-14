@@ -289,7 +289,7 @@
                 width: 44px;
                 height: 44px;
                 padding: 10px;
-                display: flex;
+                display: none;
                 align-items: center;
                 justify-content: center;
             }
@@ -729,12 +729,12 @@
                     <button id="clear-menu" onclick="clearConversation()">Clear Conversation</button>
                 </div>
             </div>
-            <div id="character-preview" style="display: none">
+            <div id="character-preview">
                 <div id="character-preview-content">
                     <img id="preview-img" src="" alt="Character Photo" />
                     <p id="preview-name"></p>
                 </div>
-                <button id="mobile-menu-btn" onclick="toggleMenu()" style="display: none;">≡</button>
+                <button id="mobile-menu-btn" onclick="toggleMenu()">≡</button>
             </div>
             <div id="messages"></div>
         </div>
@@ -1157,23 +1157,22 @@
                     "flex";
                 document.getElementById("chat-header").style.display = "flex";
 
-                // Show character preview with mobile menu
-                const previewDiv = document.getElementById("character-preview");
-                const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+                // Setup character preview
+                const previewContent = document.getElementById("character-preview-content");
 
                 if (characterName && characterPhotoUrl) {
                     const previewImg = document.getElementById("preview-img");
                     const previewName = document.getElementById("preview-name");
                     previewImg.src = getDisplayUrl(characterPhotoUrl);
                     previewName.textContent = characterName;
-                    // Don't set display - let CSS handle it (mobile shows via media query)
+                    if (previewContent) {
+                        previewContent.style.display = "flex";
+                    }
                 } else {
-                    // On mobile, preview still shows for menu access
-                    const previewContent = document.getElementById("character-preview-content");
+                    // Hide character info but keep preview for mobile menu button
                     if (previewContent) {
                         previewContent.style.display = "none";
                     }
-                    // Don't set display on preview - let CSS handle it
                 }
 
                 renderConversation();
